@@ -7,7 +7,7 @@ from jina.logging.logger import JinaLogger
 from transformers import CLIPFeatureExtractor, CLIPModel
 
 
-class CLIPImageEncoder(Executor):
+class CLIPImageEncoderCUDA11(Executor):
     """Encode image into embeddings using the CLIP model."""
 
     def __init__(

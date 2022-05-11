@@ -1,4 +1,4 @@
-jtype: CLIPImageEncoder
+jtype: CLIPImageEncoderCUDA11
 metas:
   py_modules:
     - clip_image.py
