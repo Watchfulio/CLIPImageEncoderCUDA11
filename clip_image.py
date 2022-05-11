@@ -57,6 +57,14 @@ class CLIPImageEncoderCUDA11(Executor):
         self.model = CLIPModel.from_pretrained(self.pretrained_model_name_or_path)
         self.model.to(self.device).eval()
 
+    @requests(on="/index")
+    def encode_chunks(self, docs: DocumentArray, **kwargs):
+        self.encode(docs, {'device': 'cuda', 'traversal_path': '@c'})
+
+    @requests(on="/search")
+    def encode_chunks(self, docs: DocumentArray, **kwargs):
+        self.encode(docs, {'device': 'cuda', 'traversal_path': '@r'})
+
     @requests
     def encode(self, docs: DocumentArray, parameters: dict, **kwargs):
         """
