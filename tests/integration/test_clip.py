@@ -2,7 +2,7 @@ import subprocess
 
 import numpy as np
 import pytest
-from clip_image import CLIPImageEncoder
+from clip_image import CLIPImageEncoderCUDA11
 from jina import Document, DocumentArray, Flow
 
 
@@ -14,7 +14,7 @@ def test_integration(request_size: int):
             for _ in range(50)
         ]
     )
-    with Flow().add(uses=CLIPImageEncoder) as flow:
+    with Flow().add(uses=CLIPImageEncoderCUDA11) as flow:
         da = flow.post(
             on="/index",
             inputs=docs,

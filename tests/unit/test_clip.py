@@ -5,7 +5,7 @@ import clip
 import numpy as np
 import pytest
 import torch
-from clip_image import CLIPImageEncoder
+from clip_image import CLIPImageEncoderCUDA11
 from jina import Document, DocumentArray, Executor
 from PIL import Image
 
@@ -13,13 +13,13 @@ _EMBEDDING_DIM = 512
 
 
 @pytest.fixture(scope="module")
-def encoder() -> CLIPImageEncoder:
-    return CLIPImageEncoder()
+def encoder() -> CLIPImageEncoderCUDA11:
+    return CLIPImageEncoderCUDA11()
 
 
 @pytest.fixture(scope="module")
-def encoder_no_pre() -> CLIPImageEncoder:
-    return CLIPImageEncoder(use_default_preprocessing=False)
+def encoder_no_pre() -> CLIPImageEncoderCUDA11:
+    return CLIPImageEncoderCUDA11(use_default_preprocessing=False)
 
 
 @pytest.fixture(scope="function")
@@ -44,19 +44,19 @@ def test_config():
     assert ex.batch_size == 32
 
 
-def test_no_documents(encoder: CLIPImageEncoder):
+def test_no_documents(encoder: CLIPImageEncoderCUDA11):
     docs = DocumentArray()
     encoder.encode(docs=docs, parameters={})
     assert len(docs) == 0  # SUCCESS
 
-def test_docs_no_tensors(encoder: CLIPImageEncoder):
+def test_docs_no_tensors(encoder: CLIPImageEncoderCUDA11):
     docs = DocumentArray([Document()])
     encoder.encode(docs=DocumentArray(), parameters={})
     assert len(docs) == 1
     assert docs[0].embedding is None
 
 
-def test_single_image(encoder: CLIPImageEncoder):
+def test_single_image(encoder: CLIPImageEncoderCUDA11):
     docs = DocumentArray([Document(tensor=np.ones((100, 100, 3), dtype=np.uint8))])
     encoder.encode(docs, {})
 
@@ -64,7 +64,7 @@ def test_single_image(encoder: CLIPImageEncoder):
     assert docs[0].embedding.dtype == np.float32
 
 
-def test_single_image_no_preprocessing(encoder_no_pre: CLIPImageEncoder):
+def test_single_image_no_preprocessing(encoder_no_pre: CLIPImageEncoderCUDA11):
     docs = DocumentArray([Document(tensor=np.ones((3, 224, 224), dtype=np.uint8))])
     encoder_no_pre.encode(docs, {})
 
@@ -73,7 +73,7 @@ def test_single_image_no_preprocessing(encoder_no_pre: CLIPImageEncoder):
 
 
 def test_encoding_cpu():
-    encoder = CLIPImageEncoder(device="cpu")
+    encoder = CLIPImageEncoderCUDA11(device="cpu")
     input_data = DocumentArray([Document(tensor=np.ones((100, 100, 3), dtype=np.uint8))])
 
     encoder.encode(docs=input_data, parameters={})
@@ -82,7 +82,7 @@ def test_encoding_cpu():
 
 
 def test_cpu_no_preprocessing():
-    encoder = CLIPImageEncoder(device="cpu", use_default_preprocessing=False)
+    encoder = CLIPImageEncoderCUDA11(device="cpu", use_default_preprocessing=False)
     input_data = DocumentArray([Document(tensor=np.ones((3, 224, 224), dtype=np.uint8))])
 
     encoder.encode(docs=input_data, parameters={})
@@ -92,7 +92,7 @@ def test_cpu_no_preprocessing():
 
 @pytest.mark.gpu
 def test_encoding_gpu():
-    encoder = CLIPImageEncoder(device="cuda")
+    encoder = CLIPImageEncoderCUDA11(device="cuda")
     input_data = DocumentArray([Document(tensor=np.ones((100, 100, 3), dtype=np.uint8))])
 
     encoder.encode(docs=input_data, parameters={})
@@ -102,7 +102,7 @@ def test_encoding_gpu():
 
 @pytest.mark.gpu
 def test_gpu_no_preprocessing():
-    encoder = CLIPImageEncoder(device="cuda", use_default_preprocessing=False)
+    encoder = CLIPImageEncoderCUDA11(device="cuda", use_default_preprocessing=False)
     input_data = DocumentArray(
         [Document(tensor=np.ones((3, 224, 224), dtype=np.float32))]
     )
@@ -112,7 +112,7 @@ def test_gpu_no_preprocessing():
     assert input_data[0].embedding.shape == (_EMBEDDING_DIM,)
 
 
-def test_clip_any_image_shape(encoder: CLIPImageEncoder):
+def test_clip_any_image_shape(encoder: CLIPImageEncoderCUDA11):
     docs = DocumentArray([Document(tensor=np.ones((224, 224, 3), dtype=np.uint8))])
 
     encoder.encode(docs=docs, parameters={})
@@ -123,7 +123,7 @@ def test_clip_any_image_shape(encoder: CLIPImageEncoder):
     assert len(docs.embeddings) == 1
 
 
-def test_clip_batch(encoder: CLIPImageEncoder):
+def test_clip_batch(encoder: CLIPImageEncoderCUDA11):
     """
     This tests that the encoder can handle inputs of various size
     which is not a factorial of ``default_batch_size``
@@ -142,7 +142,7 @@ def test_clip_batch(encoder: CLIPImageEncoder):
     np.testing.assert_allclose(docs[0].embedding, docs[1].embedding)
 
 
-def test_batch_no_preprocessing(encoder_no_pre: CLIPImageEncoder):
+def test_batch_no_preprocessing(encoder_no_pre: CLIPImageEncoderCUDA11):
     docs = DocumentArray(
         [
             Document(tensor=np.ones((3, 224, 224), dtype=np.float32)),
@@ -157,7 +157,7 @@ def test_batch_no_preprocessing(encoder_no_pre: CLIPImageEncoder):
 
 
 @pytest.mark.parametrize("batch_size", [1, 2, 4, 8])
-def test_batch_size(encoder: CLIPImageEncoder, batch_size: int):
+def test_batch_size(encoder: CLIPImageEncoderCUDA11, batch_size: int):
     tensor = np.ones((100, 100, 3), dtype=np.uint8)
     docs = DocumentArray([Document(tensor=tensor) for _ in range(32)])
     encoder.encode(docs, parameters={"batch_size": batch_size})
@@ -167,7 +167,7 @@ def test_batch_size(encoder: CLIPImageEncoder, batch_size: int):
 
 
 @pytest.mark.parametrize("batch_size", [1, 2, 4, 8])
-def test_batch_size_no_preprocessing(encoder_no_pre: CLIPImageEncoder, batch_size: int):
+def test_batch_size_no_preprocessing(encoder_no_pre: CLIPImageEncoderCUDA11, batch_size: int):
     tensor = np.ones((3, 224, 224), dtype=np.uint8)
     docs = DocumentArray([Document(tensor=tensor) for _ in range(32)])
     encoder_no_pre.encode(docs, parameters={"batch_size": batch_size})
@@ -176,7 +176,7 @@ def test_batch_size_no_preprocessing(encoder_no_pre: CLIPImageEncoder, batch_siz
         assert doc.embedding.shape == (_EMBEDDING_DIM,)
 
 
-def test_embeddings_quality(encoder: CLIPImageEncoder):
+def test_embeddings_quality(encoder: CLIPImageEncoderCUDA11):
     """
     This tests that the embeddings actually "make sense".
     We check this by making sure that the distance between the embeddings
@@ -214,7 +214,7 @@ def test_openai_embed_match():
 
     docs = DocumentArray([dog, airplane, helicopter])
 
-    clip_text_encoder = CLIPImageEncoder("openai/clip-vit-base-patch32", device="cpu")
+    clip_text_encoder = CLIPImageEncoderCUDA11("openai/clip-vit-base-patch32", device="cpu")
     clip_text_encoder.encode(docs, {})
 
     actual_embedding = np.stack(docs.embeddings)
@@ -245,7 +245,7 @@ def test_traversal_path(
     traversal_paths: str,
     counts: Tuple[str, int],
     nested_docs: DocumentArray,
-    encoder: CLIPImageEncoder,
+    encoder: CLIPImageEncoderCUDA11,
 ):
     encoder.encode(nested_docs, parameters={"traversal_paths": traversal_paths})
     for path, count in counts:
